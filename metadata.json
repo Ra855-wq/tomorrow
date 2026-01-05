@@ -1,0 +1,7 @@
+{
+  "name": "Tomorrowland: The Portal",
+  "description": "An immersive, interactive Tomorrowland-themed experience featuring Adscendo and Life themes, generative wisdom, and audio visualization.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
