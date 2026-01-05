@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { audioEngine } from '../services/audioService';
 import { Theme } from '../types';
@@ -14,8 +15,8 @@ const Visualizer: React.FC<VisualizerProps> = ({ theme, active }) => {
   const getColor = () => {
     switch (theme) {
       case Theme.ADSCENDO: return '251, 191, 36'; // Amber
-      case Theme.LIFE: return '244, 114, 182'; // Pink
-      default: return '34, 211, 238'; // Cyan
+      case Theme.LIFE: return '52, 211, 153'; // Emerald
+      default: return '129, 140, 248'; // Indigo
     }
   };
 
@@ -26,11 +27,14 @@ const Visualizer: React.FC<VisualizerProps> = ({ theme, active }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Resize
-    canvas.width = window.innerWidth;
-    canvas.height = 300;
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = 200;
+    };
+    window.addEventListener('resize', resize);
+    resize();
 
-    const bufferLength = 256;
+    const bufferLength = 128;
     const dataArray = new Uint8Array(bufferLength);
 
     const render = () => {
@@ -39,28 +43,24 @@ const Visualizer: React.FC<VisualizerProps> = ({ theme, active }) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const colorBase = getColor();
 
-      // Draw symmetrical waves
-      const barWidth = (canvas.width / bufferLength) * 2.5;
-      let barHeight;
+      const barWidth = (canvas.width / bufferLength) * 2;
       let x = 0;
 
       for (let i = 0; i < bufferLength; i++) {
-        barHeight = dataArray[i] / 1.5; // Scale down
+        const barHeight = (dataArray[i] / 255) * canvas.height;
+        const alpha = (dataArray[i] / 255) * 0.8;
         
-        // Dynamic opacity based on bar height
-        const alpha = barHeight / 255;
-        
-        ctx.fillStyle = `rgba(${colorBase}, ${alpha})`;
-        
-        // Mirror effect (Top and Bottom)
-        const centerY = canvas.height / 2;
-        
-        // Rounded bars
-        ctx.beginPath();
-        ctx.roundRect(x, centerY - barHeight / 2, barWidth, barHeight, 5);
-        ctx.fill();
+        const gradient = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - barHeight);
+        gradient.addColorStop(0, `rgba(${colorBase}, 0)`);
+        gradient.addColorStop(0.5, `rgba(${colorBase}, ${alpha})`);
+        gradient.addColorStop(1, `rgba(${colorBase}, 0)`);
 
-        x += barWidth + 1;
+        ctx.fillStyle = gradient;
+        
+        // Draw centered bars for a more "energy wave" look
+        ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+
+        x += barWidth;
       }
 
       animationRef.current = requestAnimationFrame(render);
@@ -69,6 +69,7 @@ const Visualizer: React.FC<VisualizerProps> = ({ theme, active }) => {
     render();
 
     return () => {
+      window.removeEventListener('resize', resize);
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
   }, [active, theme]);
@@ -76,7 +77,7 @@ const Visualizer: React.FC<VisualizerProps> = ({ theme, active }) => {
   return (
     <canvas 
       ref={canvasRef} 
-      className="absolute bottom-0 left-0 w-full h-[300px] z-0 pointer-events-none opacity-50"
+      className="fixed bottom-0 left-0 w-full h-[200px] z-10 pointer-events-none mix-blend-screen opacity-60"
     />
   );
 };

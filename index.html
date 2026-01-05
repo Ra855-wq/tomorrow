@@ -43,6 +43,21 @@
       .animate-pulse-slow {
         animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
       }
+
+      @keyframes portal-glow {
+        0%, 100% { 
+          box-shadow: 0 0 40px var(--glow-color);
+          filter: brightness(1);
+        }
+        50% { 
+          box-shadow: 0 0 100px var(--glow-color);
+          filter: brightness(1.2);
+        }
+      }
+
+      .animate-portal-glow {
+        animation: portal-glow 3s ease-in-out infinite;
+      }
     </style>
   <script type="importmap">
 {
