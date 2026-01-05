@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { Theme } from '../types';
 import { Loader2, Sparkles } from 'lucide-react';
 
@@ -10,6 +11,16 @@ interface PortalProps {
 
 const Portal: React.FC<PortalProps> = ({ theme, onEnter, isLoading }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    setMousePos({ x, y });
+  };
 
   const getPortalColors = () => {
     switch (theme) {
@@ -20,7 +31,8 @@ const Portal: React.FC<PortalProps> = ({ theme, onEnter, isLoading }) => {
           glowRgb: 'rgba(251,191,36,0.8)',
           inner: 'bg-gradient-to-br from-amber-900 via-amber-700 to-black',
           text: 'text-amber-100',
-          accent: 'bg-amber-400'
+          accent: 'bg-amber-400',
+          rune: 'fill-amber-400/40'
         };
       case Theme.LIFE:
         return {
@@ -29,7 +41,8 @@ const Portal: React.FC<PortalProps> = ({ theme, onEnter, isLoading }) => {
           glowRgb: 'rgba(16,185,129,0.8)',
           inner: 'bg-gradient-to-br from-emerald-900 via-emerald-700 to-black',
           text: 'text-emerald-100',
-          accent: 'bg-emerald-400'
+          accent: 'bg-emerald-400',
+          rune: 'fill-emerald-400/40'
         };
       default:
         return {
@@ -38,16 +51,59 @@ const Portal: React.FC<PortalProps> = ({ theme, onEnter, isLoading }) => {
           glowRgb: 'rgba(129,140,248,0.8)',
           inner: 'bg-gradient-to-br from-indigo-900 via-purple-900 to-black',
           text: 'text-indigo-100',
-          accent: 'bg-indigo-400'
+          accent: 'bg-indigo-400',
+          rune: 'fill-indigo-400/40'
         };
     }
   };
 
   const colors = getPortalColors();
 
+  // Decorative runes that will float around
+  const runes = [
+    { id: 1, top: '15%', left: '20%', size: 40, delay: '0s', orbit: 12 },
+    { id: 2, top: '25%', left: '75%', size: 30, delay: '1s', orbit: -15 },
+    { id: 3, top: '70%', left: '15%', size: 50, delay: '2s', orbit: 20 },
+    { id: 4, top: '80%', left: '80%', size: 35, delay: '3s', orbit: -10 },
+    { id: 5, top: '10%', left: '60%', size: 25, delay: '1.5s', orbit: 8 },
+    { id: 6, top: '85%', left: '40%', size: 45, delay: '0.5s', orbit: -18 },
+  ];
+
   return (
-    <div className="relative flex items-center justify-center h-screen w-full perspective-1000">
+    <div 
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      className="relative flex items-center justify-center h-screen w-full perspective-1000 overflow-hidden"
+    >
       
+      {/* Floating Magic Runes (Parallax) */}
+      {runes.map((rune) => (
+        <div
+          key={rune.id}
+          className="absolute pointer-events-none transition-transform duration-1000 ease-out z-0"
+          style={{
+            top: rune.top,
+            left: rune.left,
+            transform: `translate(${mousePos.x * rune.orbit * 5}px, ${mousePos.y * rune.orbit * 5}px)`,
+          }}
+        >
+          <svg 
+            width={rune.size} 
+            height={rune.size} 
+            viewBox="0 0 100 100" 
+            className={`animate-float ${colors.rune} blur-[1px]`}
+            style={{ animationDelay: rune.delay, opacity: 0.4 }}
+          >
+            {/* Abstract Mystical Shapes/Runes */}
+            {rune.id % 2 === 0 ? (
+              <path d="M50 5 L95 50 L50 95 L5 50 Z M50 20 L80 50 L50 80 L20 50 Z" />
+            ) : (
+              <path d="M50 0 L60 40 L100 50 L60 60 L50 100 L40 60 L0 50 L40 40 Z" />
+            )}
+          </svg>
+        </div>
+      ))}
+
       {/* Decorative Rotating Rings */}
       <div className={`absolute w-[500px] h-[500px] md:w-[700px] md:h-[700px] rounded-full border-2 border-dashed opacity-20 animate-[spin_30s_linear_infinite] ${colors.ring}`} />
       <div className={`absolute w-[450px] h-[450px] md:w-[650px] md:h-[650px] rounded-full border border-opacity-30 animate-[spin_20s_linear_infinite_reverse] ${colors.ring}`} />

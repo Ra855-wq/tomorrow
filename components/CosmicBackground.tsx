@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Theme } from '../types';
 
@@ -16,13 +17,33 @@ interface CursorParticle {
   color: string;
 }
 
+interface Wisp {
+  angle: number;
+  distance: number;
+  speed: number;
+  size: number;
+  offset: number;
+}
+
 const CosmicBackground: React.FC<CosmicBackgroundProps> = ({ theme }) => {
   const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
   const [pixelMouse, setPixelMouse] = useState({ x: 0, y: 0 });
+  const smoothMouse = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<CursorParticle[]>([]);
   const requestRef = useRef<number | null>(null);
+
+  // Initialize Wisps that orbit the cursor
+  const wisps = useMemo<Wisp[]>(() => {
+    return Array.from({ length: 6 }).map(() => ({
+      angle: Math.random() * Math.PI * 2,
+      distance: 30 + Math.random() * 40,
+      speed: 0.02 + Math.random() * 0.03,
+      size: 2 + Math.random() * 3,
+      offset: Math.random() * 1000
+    }));
+  }, []);
 
   const stars = useMemo(() => {
     return Array.from({ length: 450 }).map((_, i) => ({
@@ -45,7 +66,8 @@ const CosmicBackground: React.FC<CosmicBackgroundProps> = ({ theme }) => {
           secondary: 'rgba(180, 83, 9, 0.15)',
           accent: 'rgba(253, 230, 138, 0.1)',
           interactive: 'rgba(251, 191, 36, 0.25)',
-          particle: '#fbbf24' // Amber-400
+          particle: '#fbbf24', // Amber-400
+          glow: 'rgba(251, 191, 36, 0.4)'
         };
       case Theme.LIFE:
         return {
@@ -53,7 +75,8 @@ const CosmicBackground: React.FC<CosmicBackgroundProps> = ({ theme }) => {
           secondary: 'rgba(6, 95, 70, 0.15)',
           accent: 'rgba(236, 72, 153, 0.1)',
           interactive: 'rgba(52, 211, 153, 0.25)',
-          particle: '#10b981' // Emerald-500
+          particle: '#10b981', // Emerald-500
+          glow: 'rgba(16, 185, 129, 0.4)'
         };
       default:
         return {
@@ -61,7 +84,8 @@ const CosmicBackground: React.FC<CosmicBackgroundProps> = ({ theme }) => {
           secondary: 'rgba(49, 46, 129, 0.15)',
           accent: 'rgba(168, 85, 247, 0.1)',
           interactive: 'rgba(129, 140, 248, 0.25)',
-          particle: '#818cf8' // Indigo-400
+          particle: '#818cf8', // Indigo-400
+          glow: 'rgba(129, 140, 248, 0.4)'
         };
     }
   };
@@ -80,7 +104,7 @@ const CosmicBackground: React.FC<CosmicBackgroundProps> = ({ theme }) => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  // Animation logic for interactive particles
+  // Animation logic for interactive particles and swirling wisps
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -94,42 +118,71 @@ const CosmicBackground: React.FC<CosmicBackgroundProps> = ({ theme }) => {
     window.addEventListener('resize', resize);
     resize();
 
-    const animate = () => {
+    const animate = (time: number) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Spawn particles near mouse
-      if (Math.random() > 0.3) {
+      // Smooth following for the cursor aura
+      smoothMouse.current.x += (pixelMouse.x - smoothMouse.current.x) * 0.1;
+      smoothMouse.current.y += (pixelMouse.y - smoothMouse.current.y) * 0.1;
+
+      // Draw "Core Glow" under cursor
+      const gradient = ctx.createRadialGradient(
+        smoothMouse.current.x, smoothMouse.current.y, 0,
+        smoothMouse.current.x, smoothMouse.current.y, 100
+      );
+      gradient.addColorStop(0, colors.glow);
+      gradient.addColorStop(1, 'transparent');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(smoothMouse.current.x, smoothMouse.current.y, 100, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Spawn ambient particles near mouse
+      if (Math.random() > 0.4) {
         particlesRef.current.push({
-          x: pixelMouse.x + (Math.random() - 0.5) * 40,
-          y: pixelMouse.y + (Math.random() - 0.5) * 40,
-          vx: (Math.random() - 0.5) * 2,
-          vy: (Math.random() - 0.5) * 2 - 1, // Slight upward drift
+          x: pixelMouse.x + (Math.random() - 0.5) * 50,
+          y: pixelMouse.y + (Math.random() - 0.5) * 50,
+          vx: (Math.random() - 0.5) * 1.5,
+          vy: (Math.random() - 0.5) * 1.5 - 0.5, 
           life: 1.0,
-          maxLife: 0.01 + Math.random() * 0.02,
-          size: Math.random() * 3 + 1,
+          maxLife: 0.01 + Math.random() * 0.015,
+          size: Math.random() * 2.5 + 0.5,
           color: colors.particle
         });
       }
 
-      // Update and Draw
+      // Draw swirling wisps
+      wisps.forEach(wisp => {
+        wisp.angle += wisp.speed;
+        const orbitX = smoothMouse.current.x + Math.cos(wisp.angle) * wisp.distance;
+        const orbitY = smoothMouse.current.y + Math.sin(wisp.angle) * wisp.distance;
+        
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = colors.particle;
+        ctx.fillStyle = colors.particle;
+        ctx.globalAlpha = 0.6 + Math.sin(time * 0.005 + wisp.offset) * 0.3;
+        ctx.beginPath();
+        ctx.arc(orbitX, orbitY, wisp.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+
+      // Update and Draw floating particles
       particlesRef.current = particlesRef.current.filter(p => {
         p.x += p.vx;
         p.y += p.vy;
         p.life -= p.maxLife;
 
         if (p.life > 0) {
-          ctx.globalAlpha = p.life;
+          ctx.globalAlpha = p.life * 0.8;
           ctx.fillStyle = p.color;
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
           ctx.fill();
           
-          // Glow effect for larger particles
-          if (p.size > 2) {
-            ctx.shadowBlur = 8;
+          if (p.size > 1.5) {
+            ctx.shadowBlur = 6;
             ctx.shadowColor = p.color;
-          } else {
-            ctx.shadowBlur = 0;
           }
           return true;
         }
@@ -144,7 +197,7 @@ const CosmicBackground: React.FC<CosmicBackgroundProps> = ({ theme }) => {
       window.removeEventListener('resize', resize);
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [pixelMouse, colors.particle]);
+  }, [pixelMouse, colors.particle, colors.glow, wisps]);
 
   return (
     <div ref={containerRef} className="fixed inset-0 overflow-hidden pointer-events-none z-[-1] bg-[#020206]">
@@ -172,18 +225,18 @@ const CosmicBackground: React.FC<CosmicBackgroundProps> = ({ theme }) => {
         }}
       />
 
-      {/* Interactive Cursor Nebula Glow */}
+      {/* Interactive Cursor Nebula Glow (CSS based layer for broad atmospheric lighting) */}
       <div 
-        className="absolute inset-0 transition-opacity duration-1000 mix-blend-screen opacity-30"
+        className="absolute inset-0 transition-opacity duration-1000 mix-blend-screen opacity-20"
         style={{
-          background: `radial-gradient(circle at ${mousePos.x * 100}% ${mousePos.y * 100}%, ${colors.interactive} 0%, transparent 30%)`,
+          background: `radial-gradient(circle at ${mousePos.x * 100}% ${mousePos.y * 100}%, ${colors.interactive} 0%, transparent 40%)`,
         }}
       />
 
-      {/* Interactive Particles Canvas */}
+      {/* Interactive Particles & Wisps Canvas */}
       <canvas 
         ref={canvasRef}
-        className="absolute inset-0 z-10 opacity-60 mix-blend-screen"
+        className="absolute inset-0 z-10 opacity-70 mix-blend-screen"
       />
 
       {/* Deep Space Nebula Detail */}
