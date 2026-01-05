@@ -1,20 +1,8 @@
-
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Theme } from '../types';
 
 interface CosmicBackgroundProps {
   theme: Theme;
-}
-
-interface Star {
-  id: number;
-  x: number;
-  y: number;
-  size: number;
-  duration: number;
-  delay: number;
-  opacity: number;
-  parallaxFactor: number;
 }
 
 interface CursorParticle {
@@ -160,26 +148,26 @@ const CosmicBackground: React.FC<CosmicBackgroundProps> = ({ theme }) => {
 
   return (
     <div ref={containerRef} className="fixed inset-0 overflow-hidden pointer-events-none z-[-1] bg-[#020206]">
-      {/* Base Nebula Layers */}
+      {/* Base Nebula Layers with Slow Swirling & Drifting */}
       <div 
-        className="absolute inset-0 transition-all duration-[4000ms] ease-in-out mix-blend-screen"
+        className="absolute inset-0 transition-all duration-[4000ms] ease-in-out mix-blend-screen animate-nebula-swirl"
         style={{
           background: `radial-gradient(circle at 20% 30%, ${colors.primary} 0%, transparent 65%)`,
           transform: `translate(${(mousePos.x - 0.5) * -30}px, ${(mousePos.y - 0.5) * -30}px)`
         }}
       />
       <div 
-        className="absolute inset-0 transition-all duration-[4000ms] ease-in-out mix-blend-screen animate-pulse-slow"
+        className="absolute inset-0 transition-all duration-[4000ms] ease-in-out mix-blend-screen animate-nebula-drift"
         style={{
           background: `radial-gradient(circle at 80% 70%, ${colors.secondary} 0%, transparent 75%)`,
-          animationDuration: '12s',
           transform: `translate(${(mousePos.x - 0.5) * 40}px, ${(mousePos.y - 0.5) * 40}px)`
         }}
       />
       <div 
-        className="absolute inset-0 transition-all duration-[4000ms] ease-in-out mix-blend-screen"
+        className="absolute inset-0 transition-all duration-[4000ms] ease-in-out mix-blend-screen animate-pulse-slow"
         style={{
           background: `radial-gradient(circle at 50% 50%, ${colors.accent} 0%, transparent 85%)`,
+          animationDuration: '15s',
           transform: `translate(${(mousePos.x - 0.5) * -15}px, ${(mousePos.y - 0.5) * -15}px)`
         }}
       />
